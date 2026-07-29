@@ -1,5 +1,5 @@
 // Paste your deployed Google Apps Script Web App URL here
-const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwnmxcqrmvAGxN1oQ9kyhjei5_cteZzz3nCh4WpjIMkmkNHjz18q2LueUOhdUC18FVy/exec';
 
 document.getElementById('date').valueAsDate = new Date();
 document.getElementById('transactionForm').addEventListener('submit', addTransaction);
