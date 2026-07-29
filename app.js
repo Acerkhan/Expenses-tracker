@@ -111,5 +111,4 @@ function addTransaction(e) {
     });
 }
 
-l
-    oadData();
+loadData();
