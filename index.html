@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Expense Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header><h1>Expense Tracker</h1></header>
+        <div class="card">
+            <div class="total-balance">
+                <h3>Net Balance</h3>
+                <p id="netBalance">$0.00</p>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Add Entry</h2>
+            <form id="transactionForm">
+                <select id="type"><option value="expense">Expense</option><option value="income">Income</option></select>
+                <select id="category">
+                    <option value="Normal Eating">Normal Eating</option>
+                    <option value="Internet & Online">Internet & Online</option>
+                </select>
+                <input type="text" id="title" placeholder="Description" required>
+                <input type="number" id="amount" step="0.01" placeholder="Amount" required>
+                <input type="date" id="date" required>
+                <button type="submit" id="submitBtn">Add Transaction</button>
+            </form>
+        </div>
+        <div class="card">
+            <h2>History</h2>
+            <ul id="transactionList"></ul>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
