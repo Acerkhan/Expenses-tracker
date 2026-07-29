@@ -1,14 +1,12 @@
-// Paste your deployed Google Apps Script Web App URL here
-const API_URL = 'https://script.google.com/macros/s/AKfycbwnmxcqrmvAGxN1oQ9kyhjei5_cteZzz3nCh4WpjIMkmkNHjz18q2LueUOhdUC18FVy/exec';
+const API_URL = 'https://script.google.com/macros/library/d/16jjVErTzYcVzr_GHGd0PC927KKPOsq6WcQufz8CjzL_9KSuQ1vSIkul3/11';
 
 document.getElementById('date').valueAsDate = new Date();
 document.getElementById('transactionForm').addEventListener('submit', addTransaction);
 
 function loadData() {
-    fetch(API_URL)
+    fetch(API_URL + '?action=getData')
         .then(res => res.json())
         .then(data => {
-            // Update all dashboard metrics from Row 2 formulas
             document.getElementById('netBalance').textContent = `$${Number(data.net || 0).toFixed(2)}`;
             document.getElementById('totalIncome').textContent = `$${Number(data.income || 0).toFixed(2)}`;
             document.getElementById('totalExpense').textContent = `$${Number(data.expense || 0).toFixed(2)}`;
@@ -45,7 +43,7 @@ function addTransaction(e) {
     e.preventDefault();
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Saving...';
+    submitBtn.textContent = 'Saving to Sheet...';
 
     const payload = {
         id: Date.now(),
@@ -64,7 +62,7 @@ function addTransaction(e) {
     .then(res => {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Add Transaction';
-        if(res.status === 'success') {
+        if(res && res.status === 'success') {
             document.getElementById('transactionForm').reset();
             document.getElementById('date').valueAsDate = new Date();
             loadData();
@@ -76,4 +74,5 @@ function addTransaction(e) {
     });
 }
 
-loadData();
+loadD
+    ata();
