@@ -1,10 +1,10 @@
-const API_URL = 'https://script.google.com/macros/library/d/16jjVErTzYcVzr_GHGd0PC927KKPOsq6WcQufz8CjzL_9KSuQ1vSIkul3/11';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwnmxcqrmvAGxN1oQ9kyhjei5_cteZzz3nCh4WpjIMkmkNHjz18q2LueUOhdUC18FVy/exec';
 
 document.getElementById('date').valueAsDate = new Date();
 document.getElementById('transactionForm').addEventListener('submit', addTransaction);
 
 function loadData() {
-    fetch(API_URL + '?action=getData')
+    fetch(API_URL)
         .then(res => res.json())
         .then(data => {
             document.getElementById('netBalance').textContent = `$${Number(data.net || 0).toFixed(2)}`;
@@ -36,43 +36,45 @@ function loadData() {
                 list.appendChild(li);
             });
         })
-        .catch(err => console.error("Error loading data:", err));
+        .catch(err => {
+            console.error("Error loading data:", err);
+            document.getElementById('transactionList').innerHTML = `<div class="empty-state">Failed to connect to sheet.</div>`;
+        });
 }
 
 function addTransaction(e) {
     e.preventDefault();
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Saving to Sheet...';
+    submitBtn.textContent = 'Saving...';
 
-    const payload = {
+    const params = new URLSearchParams({
+        action: 'add',
         id: Date.now(),
         type: document.getElementById('type').value,
         category: document.getElementById('category').value,
         title: document.getElementById('title').value,
-        amount: parseFloat(document.getElementById('amount').value),
+        amount: document.getElementById('amount').value,
         date: document.getElementById('date').value
-    };
-
-    fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(res => {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Add Transaction';
-        if(res && res.status === 'success') {
-            document.getElementById('transactionForm').reset();
-            document.getElementById('date').valueAsDate = new Date();
-            loadData();
-        }
-    })
-    .catch(() => {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Add Transaction';
     });
+
+    // Send data cleanly via GET query parameters to prevent CORS blocks
+    fetch(`${API_URL}?${params.toString()}`)
+        .then(res => res.json())
+        .then(res => {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Add Transaction';
+            if(res && res.status === 'success') {
+                document.getElementById('transactionForm').reset();
+                document.getElementById('date').valueAsDate = new Date();
+                loadData(); // Immediately refresh dashboard and history from sheet
+            }
+        })
+        .catch(() => {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Add Transaction';
+        });
 }
 
-loadD
-    ata();
+load
+    Data();
