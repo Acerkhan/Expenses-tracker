@@ -84,7 +84,10 @@
         </div>
 
         <div class="card">
-            <h2>History</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="margin: 0;">History</h2>
+                <button id="exportBtn" style="background-color: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">Export CSV</button>
+            </div>
             <ul id="transactionList">
                 <div class="empty-state">Loading data from Supabase...</div>
             </ul>
