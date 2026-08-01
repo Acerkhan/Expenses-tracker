@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expense Tracker</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -82,7 +84,7 @@
         <div class="card">
             <h2>History</h2>
             <ul id="transactionList">
-                <div class="empty-state">Loading data...</div>
+                <div class="empty-state">Loading data from Supabase...</div>
             </ul>
         </div>
     </div>
