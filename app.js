@@ -3,7 +3,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let globalTransactions = []; // Store history globally for CSV export
+let globalTransactions = [];
 
 document.getElementById('date').valueAsDate = new Date();
 document.getElementById('transactionForm').addEventListener('submit', addTransaction);
@@ -69,7 +69,7 @@ async function loadData() {
                 </div>
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <strong style="color: ${colorClass};">${sign}$${Number(t.amount).toFixed(2)}</strong>
-                    <button onclick="deleteTransaction(${t.id})" style="background: transparent; border: none; cursor: pointer; font-size: 1rem;" title="Delete">🗑️</button>
+                    <button type="button" onclick="deleteTransaction(${t.id})" style="background: transparent; border: none; cursor: pointer; font-size: 1.1rem;" title="Delete">🗑️</button>
                 </div>
             `;
             list.appendChild(li);
