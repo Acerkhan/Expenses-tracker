@@ -3,8 +3,11 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+let globalTransactions = []; // Store history globally for CSV export
+
 document.getElementById('date').valueAsDate = new Date();
 document.getElementById('transactionForm').addEventListener('submit', addTransaction);
+document.getElementById('exportBtn').addEventListener('click', exportToCSV);
 
 async function loadData() {
     try {
@@ -15,10 +18,13 @@ async function loadData() {
 
         if (error) throw error;
 
+        globalTransactions = history || [];
+
         let net = 0;
         let income = 0;
         let expense = 0;
-        const categoryTotals = {};
+        let eating = 0;
+        let internet = 0;
 
         history.forEach(t => {
             const amt = Number(t.amount) || 0;
@@ -28,42 +34,16 @@ async function loadData() {
             } else {
                 expense += amt;
                 net -= amt;
-                
-                // Dynamically tally categories
-                const cat = t.category || 'Other';
-                categoryTotals[cat] = (categoryTotals[cat] || 0) + amt;
+                if (t.category === 'Normal Eating') eating += amt;
+                if (t.category === 'Internet & Online') internet += amt;
             }
         });
 
         document.getElementById('netBalance').textContent = `$${net.toFixed(2)}`;
         document.getElementById('totalIncome').textContent = `$${income.toFixed(2)}`;
         document.getElementById('totalExpense').textContent = `$${expense.toFixed(2)}`;
-
-        // Render Dynamic Category Summaries
-        const summaryContainer = document.getElementById('categorySummaryContainer');
-        if (summaryContainer) {
-            summaryContainer.innerHTML = '';
-            
-            const categories = Object.keys(categoryTotals);
-            if (categories.length === 0) {
-                summaryContainer.innerHTML = `<div class="empty-state" style="font-size: 0.85rem; color: #64748b;">No expense categories recorded yet.</div>`;
-            } else {
-                categories.forEach((cat, index) => {
-                    const row = document.createElement('div');
-                    row.className = 'weekly-row';
-                    // Remove bottom border for the last item
-                    if (index === categories.length - 1) {
-                        row.style.borderBottom = 'none';
-                    }
-                    
-                    row.innerHTML = `
-                        <span>📁 ${cat}:</span>
-                        <strong>$${categoryTotals[cat].toFixed(2)}</strong>
-                    `;
-                    summaryContainer.appendChild(row);
-                });
-            }
-        }
+        document.getElementById('eatingTotal').textContent = `$${eating.toFixed(2)}`;
+        document.getElementById('internetTotal').textContent = `$${internet.toFixed(2)}`;
 
         const list = document.getElementById('transactionList');
         list.innerHTML = '';
@@ -78,12 +58,19 @@ async function loadData() {
             const sign = t.type === 'income' ? '+' : '-';
             const colorClass = t.type === 'income' ? '#10b981' : '#ef4444';
             
+            li.style.display = 'flex';
+            li.style.justifyContent = 'space-between';
+            li.style.alignItems = 'center';
+            
             li.innerHTML = `
                 <div style="display:flex; flex-direction:column;">
                     <span style="font-weight:600;">${t.title}</span>
                     <span style="font-size:0.75rem; color:#64748b;">${t.category} • ${t.date}</span>
                 </div>
-                <strong style="color: ${colorClass};">${sign}$${Number(t.amount).toFixed(2)}</strong>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <strong style="color: ${colorClass};">${sign}$${Number(t.amount).toFixed(2)}</strong>
+                    <button onclick="deleteTransaction(${t.id})" style="background: transparent; border: none; cursor: pointer; font-size: 1rem;" title="Delete">🗑️</button>
+                </div>
             `;
             list.appendChild(li);
         });
@@ -126,6 +113,42 @@ async function addTransaction(e) {
     }
 }
 
-loadData();
+async function deleteTransaction(id) {
+    if (!confirm("Are you sure you want to delete this transaction?")) return;
+
+    try {
+        const { error } = await _supabase
+            .from('transactions')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        loadData();
+    } catch (err) {
+        alert("Error deleting transaction: " + err.message);
+    }
+}
+
+function exportToCSV() {
+    if (globalTransactions.length === 0) {
+        alert("No data available to export!");
+        return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,ID,Type,Category,Description,Amount,Date\r\n";
+
+    globalTransactions.forEach(t => {
+        const row = [t.id, t.type, `"${t.category}"`, `"${t.title}"`, t.amount, t.date];
+        csvContent += row.join(",") + "\r\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "transactions_backup.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
 loadData();
