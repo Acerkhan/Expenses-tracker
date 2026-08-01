@@ -18,8 +18,7 @@ async function loadData() {
         let net = 0;
         let income = 0;
         let expense = 0;
-        let eating = 0;
-        let internet = 0;
+        const categoryTotals = {};
 
         history.forEach(t => {
             const amt = Number(t.amount) || 0;
@@ -29,16 +28,42 @@ async function loadData() {
             } else {
                 expense += amt;
                 net -= amt;
-                if (t.category === 'Normal Eating') eating += amt;
-                if (t.category === 'Internet & Online') internet += amt;
+                
+                // Dynamically tally categories
+                const cat = t.category || 'Other';
+                categoryTotals[cat] = (categoryTotals[cat] || 0) + amt;
             }
         });
 
         document.getElementById('netBalance').textContent = `$${net.toFixed(2)}`;
         document.getElementById('totalIncome').textContent = `$${income.toFixed(2)}`;
         document.getElementById('totalExpense').textContent = `$${expense.toFixed(2)}`;
-        document.getElementById('eatingTotal').textContent = `$${eating.toFixed(2)}`;
-        document.getElementById('internetTotal').textContent = `$${internet.toFixed(2)}`;
+
+        // Render Dynamic Category Summaries
+        const summaryContainer = document.getElementById('categorySummaryContainer');
+        if (summaryContainer) {
+            summaryContainer.innerHTML = '';
+            
+            const categories = Object.keys(categoryTotals);
+            if (categories.length === 0) {
+                summaryContainer.innerHTML = `<div class="empty-state" style="font-size: 0.85rem; color: #64748b;">No expense categories recorded yet.</div>`;
+            } else {
+                categories.forEach((cat, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'weekly-row';
+                    // Remove bottom border for the last item
+                    if (index === categories.length - 1) {
+                        row.style.borderBottom = 'none';
+                    }
+                    
+                    row.innerHTML = `
+                        <span>📁 ${cat}:</span>
+                        <strong>$${categoryTotals[cat].toFixed(2)}</strong>
+                    `;
+                    summaryContainer.appendChild(row);
+                });
+            }
+        }
 
         const list = document.getElementById('transactionList');
         list.innerHTML = '';
@@ -100,5 +125,7 @@ async function addTransaction(e) {
         submitBtn.textContent = 'Add Transaction';
     }
 }
+
+loadData();
 
 loadData();
