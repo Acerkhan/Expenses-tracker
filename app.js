@@ -1,5 +1,5 @@
 const SUPABASE_URL = 'https://inptsochtqsarxyjdqkv.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlucHRzb2NodHFzYXJ4eWpkcWt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1NzE1MzMsImV4cCI6MjEwMTE0NzUzM30.Nhvb2IrCBfqvznvD_j0lMwFbWqsRSdmrkaOfHpVXqR4';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlucHRzb2NodHFzYXJ4eWpkcWt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjZlYjM5NjFjLWE5YjYtNGh5by00YTU5LTliMTMtZjllYTE5NTVmNDBjIiwicmFzaCI6ImZpZCI6Im5vd2ي';
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -18,7 +18,7 @@ function switchPage(pageId) {
     document.getElementById(`nav-${pageId}`).classList.add('active');
 
     if (pageId === 'dashboard') {
-        renderChart();
+        renderChart(window.latestCategoryTotals || {});
     }
 }
 
@@ -55,7 +55,6 @@ async function loadData() {
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth();
         
-        // Calculate start of current week (Sunday)
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
         startOfWeek.setHours(0,0,0,0);
@@ -74,26 +73,24 @@ async function loadData() {
                 const cat = t.category || 'Other';
                 categoryTotals[cat] = (categoryTotals[cat] || 0) + amt;
 
-                // Check if transaction is in current month
                 if (tDate.getFullYear() === currentYear && tDate.getMonth() === currentMonth) {
                     monthExpense += amt;
                 }
 
-                // Check if transaction is in current week
                 if (tDate >= startOfWeek) {
                     weekExpense += amt;
                 }
             }
         });
 
-        // Update Dashboard Elements
+        window.latestCategoryTotals = categoryTotals;
+
         document.getElementById('netBalance').textContent = `$${net.toFixed(2)}`;
         document.getElementById('totalIncome').textContent = `$${income.toFixed(2)}`;
         document.getElementById('totalExpense').textContent = `$${expense.toFixed(2)}`;
         document.getElementById('monthExpense').textContent = `$${monthExpense.toFixed(2)}`;
         document.getElementById('weekExpense').textContent = `$${weekExpense.toFixed(2)}`;
 
-        // Update Overview Page Elements
         document.getElementById('overviewAllTime').textContent = `$${expense.toFixed(2)}`;
         document.getElementById('overviewMonth').textContent = `$${monthExpense.toFixed(2)}`;
         document.getElementById('overviewWeek').textContent = `$${weekExpense.toFixed(2)}`;
@@ -102,7 +99,6 @@ async function loadData() {
         const dailyAverage = monthExpense / daysPassedInMonth;
         document.getElementById('dailyAvg').textContent = `$${dailyAverage.toFixed(2)}`;
 
-        // Render Dynamic Categories on Overview Page
         const summaryContainer = document.getElementById('categorySummaryContainer');
         summaryContainer.innerHTML = '';
         const categories = Object.keys(categoryTotals);
@@ -119,7 +115,6 @@ async function loadData() {
             });
         }
 
-        // Render Transactions List on Page 3
         const list = document.getElementById('transactionList');
         list.innerHTML = '';
         if (!history || history.length === 0) {
@@ -217,7 +212,7 @@ async function addTransaction(e) {
         document.getElementById('transactionForm').reset();
         document.getElementById('date').valueAsDate = new Date();
         loadData();
-        switchPage('transactions'); // Switch to transaction history page to view the added item
+        switchPage('transactions');
     } catch (err) {
         alert("Error saving transaction: " + err.message);
     } finally {
@@ -259,7 +254,7 @@ function exportToCSV() {
         } else if (filter === 'week') {
             return tDate >= startOfWeek;
         }
-        return true; // all-time
+        return true;
     });
 
     if (filteredData.length === 0) {
