@@ -6,16 +6,15 @@
   <title>ExpenseHub</title>
   <!-- Supabase Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Chart.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <!-- App Name -->
     <div class="app-title">
       <span style="font-size: 1.5rem; margin-right: 8px;">💰</span> ExpenseHub
     </div>
-    
-    <!-- Navigation Buttons -->
     <nav class="nav-buttons">
       <button id="nav-dashboard" class="active" onclick="switchPage('dashboard')">Dashboard</button>
       <button id="nav-overview" onclick="switchPage('overview')">Overview</button>
@@ -57,11 +56,20 @@
       </div>
     </section>
 
-    <!-- OVERVIEW PAGE -->
+    <!-- OVERVIEW PAGE (Now with Charts!) -->
     <section id="page-overview" class="page-section" style="display: none;">
       <div class="card">
-        <h3>Analytics & Overview</h3>
-        <p style="font-size: 0.9rem; color: #6b7280;">Detailed charts and insights will appear here in the future.</p>
+        <h3>Income vs Expenses</h3>
+        <div class="chart-container">
+          <canvas id="cashflowChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Expense Categories</h3>
+        <div class="chart-container">
+          <canvas id="categoryChart"></canvas>
+        </div>
       </div>
     </section>
 
