@@ -57,7 +57,6 @@ async function fetchTransactions() {
 }
 
 // --- Add Transaction with On-Screen Error Alert ---
-// --- Add Transaction ---
 async function addTransaction(event) {
   event.preventDefault();
   const type = document.getElementById('txn-type').value;
@@ -67,7 +66,7 @@ async function addTransaction(event) {
   const date = document.getElementById('txn-date').value;
 
   const newTxn = {
-    id: crypto.randomUUID(), // Ensures the primary key is never null
+    id: Date.now(), // Generates a unique integer ID that matches your int8 column
     type,
     category,
     title,
@@ -100,9 +99,9 @@ async function addTransaction(event) {
     }
   } catch (error) {
     alert('Network/JS Error: ' + error.message);
+  
   }
 }
-
 
 // --- Delete Transaction ---
 async function deleteTransaction(id) {
