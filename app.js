@@ -2,6 +2,14 @@ const SUPABASE_URL = 'https://inptsochtqsarxyjdqkv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlucHRzb2NodHFzYXJ4eWpkcWt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1NzE1MzMsImV4cCI6MjEwMTE0NzUzM30.Nhvb2IrCBfqvznvD_j0lMwFbWqsRSdmrkaOfHpVXqR4';
 let transactions = [];
 
+// --- Supabase Configuration ---
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+let transactions = [];
+let cashflowChartInstance = null;
+let categoryChartInstance = null;
+
 // --- Helper: Format Currency ---
 function formatCurrency(amount) {
   const isNegative = amount < 0;
@@ -106,7 +114,6 @@ function renderApp() {
     const amt = Number(t.amount);
     const tDate = new Date(t.date);
 
-    // FIX: Safely check the type regardless of capitalization
     const txnType = (t.type || '').toString().toLowerCase();
     const isIncome = txnType === 'income';
 
@@ -131,30 +138,21 @@ function renderApp() {
     }
   });
 
+  // 1. Text UI Updates
   const net = income - expenses;
-  
-  const netEl = document.getElementById('net-balance');
-  if (netEl) netEl.innerText = formatCurrency(net);
-  
-  const incEl = document.getElementById('total-income');
-  if (incEl) incEl.innerText = formatCurrency(income);
-  
-  const expEl = document.getElementById('total-expenses');
-  if (expEl) expEl.innerText = formatCurrency(expenses);
-  
-  const monthEl = document.getElementById('month-total');
-  if (monthEl) monthEl.innerText = formatCurrency(monthExpenses);
-  
-  const weekEl = document.getElementById('week-total');
-  if (weekEl) weekEl.innerText = formatCurrency(weekExpenses);
+  if (document.getElementById('net-balance')) document.getElementById('net-balance').innerText = formatCurrency(net);
+  if (document.getElementById('total-income')) document.getElementById('total-income').innerText = formatCurrency(income);
+  if (document.getElementById('total-expenses')) document.getElementById('total-expenses').innerText = formatCurrency(expenses);
+  if (document.getElementById('month-total')) document.getElementById('month-total').innerText = formatCurrency(monthExpenses);
+  if (document.getElementById('week-total')) document.getElementById('week-total').innerText = formatCurrency(weekExpenses);
 
+  // 2. Dashboard Category List Update
   const catEl = document.getElementById('category-breakdown');
   if (catEl) {
     if (Object.keys(categoryTotals).length === 0) {
       catEl.innerHTML = '<div style="color: #6b7280; font-size: 0.9rem;">No expenses yet.</div>';
     } else {
       const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
-      
       catEl.innerHTML = sortedCategories.map(([catName, amount]) => `
         <div class="category-item">
           <span>${catName}</span>
@@ -164,36 +162,99 @@ function renderApp() {
     }
   }
 
+  // 3. Transactions List Update
   const listEl = document.getElementById('transactions-list');
   if (listEl) {
     if (transactions.length === 0) {
       listEl.innerText = 'No transactions recorded yet.';
-      return;
+    } else {
+      listEl.innerHTML = transactions.map(t => {
+        const txnType = (t.type || '').toString().toLowerCase();
+        const isIncome = txnType === 'income';
+        const sign = isIncome ? '+' : '-';
+        const color = isIncome ? '#10b981' : '#ef4444';
+        
+        const displayName = t.description || t.name || t.title || t.item || 'No Description';
+        const displayCategory = t.category || 'Uncategorized';
+        
+        return `
+          <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
+            <div>
+              <strong style="color: #111;">${displayName}</strong><br>
+              <small style="color: #6b7280;">${displayCategory} • ${t.date}</small>
+            </div>
+            <div style="font-weight: bold; color: ${color}; display: flex; align-items: center;">
+              ${sign}$${Number(t.amount).toFixed(2)}
+            </div>
+          </div>
+        `;
+      }).join('');
     }
+  }
 
-    listEl.innerHTML = transactions.map(t => {
-      // FIX: Robust check for Income vs Expense
-      const txnType = (t.type || '').toString().toLowerCase();
-      const isIncome = txnType === 'income';
-      const sign = isIncome ? '+' : '-';
-      const color = isIncome ? '#10b981' : '#ef4444';
-      
-      // FIX: Fallbacks for the description column just in case your Supabase uses a different name
-      const displayName = t.description || t.name || t.title || t.item || 'No Description';
-      const displayCategory = t.category || 'Uncategorized';
-      
-      return `
-        <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
-          <div>
-            <strong style="color: #111;">${displayName}</strong><br>
-            <small style="color: #6b7280;">${displayCategory} • ${t.date}</small>
-          </div>
-          <div style="font-weight: bold; color: ${color}; display: flex; align-items: center;">
-            ${sign}$${Number(t.amount).toFixed(2)}
-          </div>
-        </div>
-      `;
-    }).join('');
+  // 4. Render Charts for Overview Tab
+  renderCharts(income, expenses, categoryTotals);
+}
+
+// --- Chart Rendering ---
+function renderCharts(income, expenses, categoryTotals) {
+  // Destroy old charts to prevent hovering glitches
+  if (cashflowChartInstance) cashflowChartInstance.destroy();
+  if (categoryChartInstance) categoryChartInstance.destroy();
+
+  // Cashflow Doughnut Chart
+  const ctxCashflow = document.getElementById('cashflowChart');
+  if (ctxCashflow) {
+    cashflowChartInstance = new Chart(ctxCashflow, {
+      type: 'doughnut',
+      data: {
+        labels: ['Income', 'Expenses'],
+        datasets: [{
+          data: [income, expenses],
+          backgroundColor: ['#10b981', '#ef4444'],
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+  }
+
+  // Categories Bar Chart
+  const ctxCategory = document.getElementById('categoryChart');
+  if (ctxCategory) {
+    // Sort categories alphabetically for the chart, or highest to lowest
+    const sortedCats = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+    const labels = sortedCats.map(c => c[0]);
+    const data = sortedCats.map(c => c[1]);
+
+    categoryChartInstance = new Chart(ctxCategory, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Amount Spent ($)',
+          data: data,
+          backgroundColor: '#6366f1',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
   }
 }
 
@@ -204,7 +265,6 @@ function filterTransactions() {
 function exportCSV() {
   let csv = 'Type,Category,Description,Amount,Date\n';
   transactions.forEach(t => {
-    // Ensuring exports capture the right fallback strings as well
     const displayName = t.description || t.name || t.title || t.item || 'No Description';
     csv += `${t.type || 'Expense'},${t.category || 'Uncategorized'},"${displayName}",${t.amount},${t.date}\n`;
   });
