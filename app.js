@@ -1,9 +1,8 @@
 const SUPABASE_URL = 'https://inptsochtqsarxyjdqkv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlucHRzb2NodHFzYXJ4eWpkcWt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1NzE1MzMsImV4cCI6MjEwMTE0NzUzM30.Nhvb2IrCBfqvznvD_j0lMwFbWqsRSdmrkaOfHpVXqR4';
-
 let transactions = [];
 
-// --- Helper: Format Currency (Fixes the negative sign bug) ---
+// --- Helper: Format Currency ---
 function formatCurrency(amount) {
   const isNegative = amount < 0;
   const absAmount = Math.abs(amount).toFixed(2);
@@ -25,7 +24,6 @@ function switchPage(pageId) {
   if (page) page.style.display = 'block';
   if (navBtn) navBtn.classList.add('active');
 
-  // Automatically populate today's date if navigating to the transactions page
   if (pageId === 'transactions') {
     const today = new Date().toISOString().split('T')[0];
     const dateInput = document.getElementById('txn-date');
@@ -96,45 +94,43 @@ function renderApp() {
   
   const categoryTotals = {};
 
-  // Setup Date logic for Month/Week tracking
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
   
-  // Get start of the current week (Sunday)
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
 
-  // Process all transactions
   transactions.forEach(t => {
     const amt = Number(t.amount);
     const tDate = new Date(t.date);
 
-    if (t.type === 'Income') {
+    // FIX: Safely check the type regardless of capitalization
+    const txnType = (t.type || '').toString().toLowerCase();
+    const isIncome = txnType === 'income';
+
+    if (isIncome) {
       income += amt;
     } else {
       expenses += amt;
       
-      // Calculate "This Month" expenses
       if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear) {
         monthExpenses += amt;
       }
       
-      // Calculate "This Week" expenses
       if (tDate >= startOfWeek) {
         weekExpenses += amt;
       }
 
-      // Group by Category for Breakdown
-      if (!categoryTotals[t.category]) {
-        categoryTotals[t.category] = 0;
+      const catName = t.category || 'Uncategorized';
+      if (!categoryTotals[catName]) {
+        categoryTotals[catName] = 0;
       }
-      categoryTotals[t.category] += amt;
+      categoryTotals[catName] += amt;
     }
   });
 
-  // 1. Update Dashboard Balances
   const net = income - expenses;
   
   const netEl = document.getElementById('net-balance');
@@ -152,13 +148,11 @@ function renderApp() {
   const weekEl = document.getElementById('week-total');
   if (weekEl) weekEl.innerText = formatCurrency(weekExpenses);
 
-  // 2. Update Category Breakdown
   const catEl = document.getElementById('category-breakdown');
   if (catEl) {
     if (Object.keys(categoryTotals).length === 0) {
       catEl.innerHTML = '<div style="color: #6b7280; font-size: 0.9rem;">No expenses yet.</div>';
     } else {
-      // Sort categories from highest spending to lowest
       const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
       
       catEl.innerHTML = sortedCategories.map(([catName, amount]) => `
@@ -170,7 +164,6 @@ function renderApp() {
     }
   }
 
-  // 3. Update Transactions List
   const listEl = document.getElementById('transactions-list');
   if (listEl) {
     if (transactions.length === 0) {
@@ -179,15 +172,21 @@ function renderApp() {
     }
 
     listEl.innerHTML = transactions.map(t => {
-      const isIncome = t.type === 'Income';
+      // FIX: Robust check for Income vs Expense
+      const txnType = (t.type || '').toString().toLowerCase();
+      const isIncome = txnType === 'income';
       const sign = isIncome ? '+' : '-';
       const color = isIncome ? '#10b981' : '#ef4444';
+      
+      // FIX: Fallbacks for the description column just in case your Supabase uses a different name
+      const displayName = t.description || t.name || t.title || t.item || 'No Description';
+      const displayCategory = t.category || 'Uncategorized';
       
       return `
         <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
           <div>
-            <strong style="color: #111;">${t.description}</strong><br>
-            <small style="color: #6b7280;">${t.category} • ${t.date}</small>
+            <strong style="color: #111;">${displayName}</strong><br>
+            <small style="color: #6b7280;">${displayCategory} • ${t.date}</small>
           </div>
           <div style="font-weight: bold; color: ${color}; display: flex; align-items: center;">
             ${sign}$${Number(t.amount).toFixed(2)}
@@ -199,13 +198,15 @@ function renderApp() {
 }
 
 function filterTransactions() {
-  renderApp(); // Add logic here later if you want dropdown filtering
+  renderApp(); 
 }
 
 function exportCSV() {
   let csv = 'Type,Category,Description,Amount,Date\n';
   transactions.forEach(t => {
-    csv += `${t.type},${t.category},"${t.description}",${t.amount},${t.date}\n`;
+    // Ensuring exports capture the right fallback strings as well
+    const displayName = t.description || t.name || t.title || t.item || 'No Description';
+    csv += `${t.type || 'Expense'},${t.category || 'Uncategorized'},"${displayName}",${t.amount},${t.date}\n`;
   });
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = window.URL.createObjectURL(blob);
