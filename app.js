@@ -1,6 +1,7 @@
 const SUPABASE_URL = 'https://inptsochtqsarxyjdqkv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlucHRzb2NodHFzYXJ4eWpkcWt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1NzE1MzMsImV4cCI6MjEwMTE0NzUzM30.Nhvb2IrCBfqvznvD_j0lMwFbWqsRSdmrkaOfHpVXqR4';
 
+// --- Supabase Configuration ---
 let transactions = [];
 let dashChartInstance = null;
 let overviewChartInstance = null;
@@ -51,16 +52,16 @@ async function fetchTransactions() {
   } catch (error) {
     console.error('Error fetching database:', error);
     const listEl = document.getElementById('transactions-list');
-    if (listEl) listEl.innerText = 'Failed to load records. Check credentials.';
+    if (listEl) listEl.innerText = 'Failed to load records.';
   }
 }
 
-// --- Add Transaction (Uses 'title' column) ---
+// --- Add Transaction with On-Screen Error Alert ---
 async function addTransaction(event) {
   event.preventDefault();
   const type = document.getElementById('txn-type').value;
   const category = document.getElementById('txn-category').value;
-  const title = document.getElementById('txn-desc').value; // Form input field ID remains txn-desc, saved as 'title'
+  const title = document.getElementById('txn-desc').value;
   const amount = parseFloat(document.getElementById('txn-amount').value);
   const date = document.getElementById('txn-date').value;
 
@@ -92,12 +93,12 @@ async function addTransaction(event) {
       fetchTransactions();
       switchPage('dashboard');
     } else {
-      const errData = await response.json();
-      console.error('Supabase rejection error:', errData);
-      alert('Failed to save transaction. Check console for details.');
+      // This will force the error message to show up on your mobile screen
+      const errText = await response.text();
+      alert('Supabase Error: ' + errText);
     }
   } catch (error) {
-    console.error('Error adding transaction:', error);
+    alert('Network/JS Error: ' + error.message);
   }
 }
 
@@ -117,10 +118,11 @@ async function deleteTransaction(id) {
     if (response.ok) {
       fetchTransactions();
     } else {
-      alert('Failed to delete item.');
+      const errText = await response.text();
+      alert('Delete Error: ' + errText);
     }
   } catch (error) {
-    console.error('Error deleting transaction:', error);
+    alert('Network Error: ' + error.message);
   }
 }
 
@@ -193,7 +195,7 @@ function renderApp() {
   renderCharts(typeTotals, categoryTotals);
 }
 
-// --- Render Transaction List (Using 'title') ---
+// --- Render Transaction List ---
 function renderTransactionList() {
   const listEl = document.getElementById('transactions-list');
   const filterVal = document.getElementById('export-filter').value;
@@ -308,7 +310,7 @@ function renderCharts(typeTotals, categoryTotals) {
   }
 }
 
-// --- CSV Export (Using 'title') ---
+// --- CSV Export ---
 function exportFilteredCSV() {
   const filterVal = document.getElementById('export-filter').value;
   const now = new Date();
