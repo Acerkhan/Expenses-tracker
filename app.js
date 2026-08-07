@@ -57,6 +57,7 @@ async function fetchTransactions() {
 }
 
 // --- Add Transaction with On-Screen Error Alert ---
+// --- Add Transaction ---
 async function addTransaction(event) {
   event.preventDefault();
   const type = document.getElementById('txn-type').value;
@@ -66,6 +67,7 @@ async function addTransaction(event) {
   const date = document.getElementById('txn-date').value;
 
   const newTxn = {
+    id: crypto.randomUUID(), // Ensures the primary key is never null
     type,
     category,
     title,
@@ -93,7 +95,6 @@ async function addTransaction(event) {
       fetchTransactions();
       switchPage('dashboard');
     } else {
-      // This will force the error message to show up on your mobile screen
       const errText = await response.text();
       alert('Supabase Error: ' + errText);
     }
@@ -101,6 +102,7 @@ async function addTransaction(event) {
     alert('Network/JS Error: ' + error.message);
   }
 }
+
 
 // --- Delete Transaction ---
 async function deleteTransaction(id) {
