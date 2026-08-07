@@ -11,7 +11,7 @@ body {
   padding-bottom: 40px;
 }
 
-/* Header & Mobile-Friendly Stacked Navigation */
+/* Header & Navigation */
 header {
   display: flex;
   flex-direction: column;
@@ -61,6 +61,7 @@ header {
   font-weight: 600;
 }
 
+/* Main Layout & Cards */
 main {
   padding: 16px;
   max-width: 600px;
@@ -87,9 +88,9 @@ main {
 }
 
 .balance-amount {
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: bold;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .balance-sub {
@@ -97,42 +98,64 @@ main {
   justify-content: space-between;
   font-size: 0.9rem;
   border-top: 1px solid rgba(255,255,255,0.2);
-  padding-top: 8px;
+  padding-top: 12px;
 }
 
 .income-text { color: #a7f3d0; font-weight: 600; }
 .expense-text { color: #fecaca; font-weight: 600; }
 
+h3 {
+  font-size: 1.05rem;
+  margin-bottom: 16px;
+  color: #111;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 8px;
+}
+
+/* Summaries */
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-top: 8px;
 }
 
 .summary-label {
   font-size: 0.75rem;
   color: #6b7280;
   font-weight: bold;
+  text-transform: uppercase;
 }
 
 .summary-value {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: bold;
   color: #111;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
+/* Category Items */
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.95rem;
+}
+.category-item:last-child {
+  border-bottom: none;
+}
+
+/* Forms & Buttons */
 .form-group {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .form-group label {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #4b5563;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .form-group input, .form-group select {
@@ -140,24 +163,25 @@ main {
   padding: 10px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .btn-primary {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   background-color: #6366f1;
   color: white;
   border: none;
   border-radius: 8px;
   font-weight: bold;
+  font-size: 1rem;
   cursor: pointer;
   margin-top: 8px;
 }
 
 .btn-secondary {
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   background-color: #10b981;
   color: white;
   border: none;
@@ -167,9 +191,22 @@ main {
   margin-top: 12px;
 }
 
+/* Extras */
 .card-header-flex {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.card-header-flex h3 {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.card-header-flex select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
 }
