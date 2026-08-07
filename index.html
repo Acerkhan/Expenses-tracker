@@ -12,118 +12,161 @@
 </head>
 <body>
   <header>
-    <div class="app-title">
-      <span style="font-size: 1.5rem; margin-right: 8px;">💰</span> ExpenseHub
+    <div class="app-brand">
+      <div class="logo-icon">💳</div>
+      <div class="brand-title">ExpenseHub</div>
     </div>
-    <nav class="nav-buttons">
-      <button id="nav-dashboard" class="active" onclick="switchPage('dashboard')">Dashboard</button>
-      <button id="nav-overview" onclick="switchPage('overview')">Overview</button>
-      <button id="nav-transactions" onclick="switchPage('transactions')">Transactions</button>
-    </nav>
   </header>
 
   <main>
-    <!-- DASHBOARD PAGE -->
+    <!-- PAGE 1: DASHBOARD -->
     <section id="page-dashboard" class="page-section">
-      <div class="card balance-card">
-        <div class="balance-title">Net Balance</div>
-        <div id="net-balance" class="balance-amount">$0.00</div>
-        <div class="balance-sub">
-          <div>Income <span id="total-income" class="income-text">$0.00</span></div>
-          <div>Expenses <span id="total-expenses" class="expense-text">$0.00</span></div>
+      <!-- Balance Hero Card -->
+      <div class="card hero-card">
+        <div class="hero-label">Net Balance</div>
+        <div id="net-balance" class="hero-amount">$0.00</div>
+        <div class="hero-sub">
+          <div>Income <span id="total-income" class="text-income">$0.00</span></div>
+          <div>Expenses <span id="total-expenses" class="text-expense">$0.00</span></div>
         </div>
       </div>
 
+      <!-- Expense Hierarchy Breakdown -->
       <div class="card">
-        <h3>Quick Summary</h3>
-        <div class="summary-grid">
-          <div>
-            <div class="summary-label">THIS MONTH</div>
-            <div id="month-total" class="summary-value">$0.00</div>
+        <h3 class="card-title">Expense Breakdown</h3>
+        <div class="metric-grid">
+          <div class="metric-item">
+            <span class="metric-label">THIS MONTH</span>
+            <span id="dash-month-total" class="metric-val">$0.00</span>
           </div>
-          <div>
-            <div class="summary-label">THIS WEEK</div>
-            <div id="week-total" class="summary-value">$0.00</div>
+          <div class="metric-item">
+            <span class="metric-label">THIS WEEK</span>
+            <span id="dash-week-total" class="metric-val">$0.00</span>
+          </div>
+          <div class="metric-item" style="grid-column: span 2;">
+            <span class="metric-label">TODAY</span>
+            <span id="dash-today-total" class="metric-val">$0.00</span>
           </div>
         </div>
       </div>
 
+      <!-- Chart Card -->
       <div class="card">
-        <h3>Spending by Category</h3>
-        <div id="category-breakdown">
-          <!-- Populated by JavaScript -->
+        <h3 class="card-title">Spending by Type</h3>
+        <div class="chart-container">
+          <canvas id="dashboardTypeChart"></canvas>
         </div>
       </div>
     </section>
 
-    <!-- OVERVIEW PAGE (Now with Charts!) -->
+    <!-- PAGE 2: DETAILED OVERVIEW -->
     <section id="page-overview" class="page-section" style="display: none;">
       <div class="card">
-        <h3>Income vs Expenses</h3>
-        <div class="chart-container">
-          <canvas id="cashflowChart"></canvas>
+        <h3 class="card-title">Analytics & Trends</h3>
+        <div class="overview-stats-stack">
+          <div class="overview-row">
+            <span>Monthly Spending</span>
+            <strong id="ov-month-total">$0.00</strong>
+          </div>
+          <div class="overview-row">
+            <span>Weekly Spending</span>
+            <strong id="ov-week-total">$0.00</strong>
+          </div>
+          <div class="overview-row">
+            <span>Daily Average</span>
+            <strong id="ov-daily-avg">$0.00</strong>
+          </div>
         </div>
       </div>
-      
+
       <div class="card">
-        <h3>Expense Categories</h3>
+        <h3 class="card-title">Category Distribution</h3>
         <div class="chart-container">
-          <canvas id="categoryChart"></canvas>
+          <canvas id="overviewCategoryChart"></canvas>
         </div>
       </div>
     </section>
 
-    <!-- TRANSACTIONS PAGE -->
+    <!-- PAGE 3: TRANSACTIONS & ENTRY -->
     <section id="page-transactions" class="page-section" style="display: none;">
+      <!-- Add Entry Card -->
       <div class="card">
-        <h3>Add New Entry</h3>
+        <h3 class="card-title">New Transaction</h3>
         <form id="transaction-form" onsubmit="addTransaction(event)">
-          <div class="form-group">
-            <label>Type</label>
-            <select id="txn-type">
-              <option value="Expense">Expense</option>
-              <option value="Income">Income</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Category</label>
-            <select id="txn-category">
-              <option value="Normal Eating">🥗 Normal Eating</option>
-              <option value="Groceries">🛒 Groceries</option>
-              <option value="Transport">🚗 Transport</option>
-              <option value="Utilities">⚡ Utilities</option>
-              <option value="Entertainment">🎬 Entertainment</option>
-              <option value="Salary">💰 Salary</option>
-            </select>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Type</label>
+              <select id="txn-type">
+                <option value="Expense">Expense</option>
+                <option value="Income">Income</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="txn-category">
+                <option value="Normal Eating">🥗 Normal Eating</option>
+                <option value="Groceries">🛒 Groceries</option>
+                <option value="Transport">🚗 Transport</option>
+                <option value="Utilities">⚡ Utilities</option>
+                <option value="Entertainment">🎬 Entertainment</option>
+                <option value="Salary">💰 Salary</option>
+              </select>
+            </div>
           </div>
           <div class="form-group">
             <label>Description</label>
-            <input type="text" id="txn-desc" placeholder="e.g., Groceries" required>
+            <input type="text" id="txn-desc" placeholder="What was this for?" required>
           </div>
-          <div class="form-group">
-            <label>Amount ($)</label>
-            <input type="number" id="txn-amount" step="0.01" placeholder="0.00" required>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Amount ($)</label>
+              <input type="number" id="txn-amount" step="0.01" placeholder="0.00" required>
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="txn-date" required>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Date</label>
-            <input type="date" id="txn-date" required>
-          </div>
-          <button type="submit" class="btn-primary">Add Transaction</button>
+          <button type="submit" class="btn-primary">Save Transaction</button>
         </form>
       </div>
 
+      <!-- History & Export Card -->
       <div class="card">
-        <div class="card-header-flex">
-          <h3>History & Export</h3>
-          <select id="filter-time" onchange="filterTransactions()">
+        <div class="flex-header">
+          <h3 class="card-title" style="margin:0; border:none;">History</h3>
+          <select id="export-filter" class="filter-dropdown">
             <option value="all">All-Time</option>
+            <option value="monthly">This Month</option>
+            <option value="weekly">This Week</option>
+            <option value="daily">Today</option>
           </select>
         </div>
-        <div id="transactions-list">Loading data from Supabase...</div>
-        <button onclick="exportCSV()" class="btn-secondary">Export CSV</button>
+        
+        <div id="transactions-list" class="txn-list-container">
+          Loading entries...
+        </div>
+
+        <button onclick="exportFilteredCSV()" class="btn-secondary">Export Filtered to CSV</button>
       </div>
     </section>
   </main>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="bottom-nav">
+    <button id="nav-dashboard" class="nav-item active" onclick="switchPage('dashboard')">
+      <span class="nav-icon">📊</span>
+      <span>Dashboard</span>
+    </button>
+    <button id="nav-overview" class="nav-item" onclick="switchPage('overview')">
+      <span class="nav-icon">📈</span>
+      <span>Overview</span>
+    </button>
+    <button id="nav-transactions" class="nav-item" onclick="switchPage('transactions')">
+      <span class="nav-icon">➕</span>
+      <span>Transactions</span>
+    </button>
+  </nav>
 
   <script src="app.js"></script>
 </body>
