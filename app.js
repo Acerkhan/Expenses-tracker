@@ -27,7 +27,6 @@ function switchPage(pageId) {
   if (page) page.style.display = 'block';
   if (navBtn) navBtn.classList.add('active');
 
-  // Set default form date when opening transactions
   if (pageId === 'transactions') {
     const today = new Date().toISOString().split('T')[0];
     const dateInput = document.getElementById('txn-date');
@@ -56,16 +55,23 @@ async function fetchTransactions() {
   }
 }
 
-// --- Add Transaction ---
+// --- Add Transaction (Uses 'title' column) ---
 async function addTransaction(event) {
   event.preventDefault();
   const type = document.getElementById('txn-type').value;
   const category = document.getElementById('txn-category').value;
-  const description = document.getElementById('txn-desc').value;
+  const title = document.getElementById('txn-desc').value; // Form input field ID remains txn-desc, saved as 'title'
   const amount = parseFloat(document.getElementById('txn-amount').value);
   const date = document.getElementById('txn-date').value;
 
-  const newTxn = { type, category, description, amount, date };
+  const newTxn = {
+    type,
+    category,
+    title,
+    amount,
+    date,
+    created_at: new Date().toISOString()
+  };
 
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
@@ -85,6 +91,10 @@ async function addTransaction(event) {
       document.getElementById('txn-date').value = today;
       fetchTransactions();
       switchPage('dashboard');
+    } else {
+      const errData = await response.json();
+      console.error('Supabase rejection error:', errData);
+      alert('Failed to save transaction. Check console for details.');
     }
   } catch (error) {
     console.error('Error adding transaction:', error);
@@ -129,12 +139,10 @@ function renderApp() {
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  // Weekly threshold (Sunday start)
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
 
-  // Today string for comparison (YYYY-MM-DD)
   const todayString = now.toISOString().split('T')[0];
 
   transactions.forEach(t => {
@@ -149,28 +157,23 @@ function renderApp() {
       expenses += amt;
       typeTotals['Expense'] = (typeTotals['Expense'] || 0) + amt;
 
-      // Monthly calculation
       if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear) {
         monthExpenses += amt;
       }
 
-      // Weekly calculation
       if (tDate >= startOfWeek) {
         weekExpenses += amt;
       }
 
-      // Daily calculation
       if (t.date === todayString) {
         todayExpenses += amt;
       }
 
-      // Group by Category
       const catName = t.category || 'Uncategorized';
       categoryTotals[catName] = (categoryTotals[catName] || 0) + amt;
     }
   });
 
-  // 1. Update Dashboard Metric Cards
   const net = income - expenses;
   if (document.getElementById('net-balance')) document.getElementById('net-balance').innerText = formatCurrency(net);
   if (document.getElementById('total-income')) document.getElementById('total-income').innerText = formatCurrency(income);
@@ -180,22 +183,17 @@ function renderApp() {
   if (document.getElementById('dash-week-total')) document.getElementById('dash-week-total').innerText = formatCurrency(weekExpenses);
   if (document.getElementById('dash-today-total')) document.getElementById('dash-today-total').innerText = formatCurrency(todayExpenses);
 
-  // 2. Update Detailed Overview Tab Data
   if (document.getElementById('ov-month-total')) document.getElementById('ov-month-total').innerText = formatCurrency(monthExpenses);
   if (document.getElementById('ov-week-total')) document.getElementById('ov-week-total').innerText = formatCurrency(weekExpenses);
   
-  // Approximate Daily Average over past 30 days
   const dailyAvg = monthExpenses / (now.getDate() || 1);
   if (document.getElementById('ov-daily-avg')) document.getElementById('ov-daily-avg').innerText = formatCurrency(dailyAvg);
 
-  // 3. Render Transaction List on Page 3
   renderTransactionList();
-
-  // 4. Render Charts
   renderCharts(typeTotals, categoryTotals);
 }
 
-// --- Render Transaction List with Delete Actions ---
+// --- Render Transaction List (Using 'title') ---
 function renderTransactionList() {
   const listEl = document.getElementById('transactions-list');
   const filterVal = document.getElementById('export-filter').value;
@@ -209,7 +207,6 @@ function renderTransactionList() {
   startOfWeek.setHours(0, 0, 0, 0);
   const todayString = now.toISOString().split('T')[0];
 
-  // Filter transactions based on selection dropdown
   const filtered = transactions.filter(t => {
     const tDate = new Date(t.date);
     if (filterVal === 'monthly') {
@@ -221,7 +218,7 @@ function renderTransactionList() {
     if (filterVal === 'daily') {
       return t.date === todayString;
     }
-    return true; // All-time
+    return true;
   });
 
   if (filtered.length === 0) {
@@ -233,16 +230,14 @@ function renderTransactionList() {
     const isIncome = (t.type || '').toLowerCase() === 'income';
     const sign = isIncome ? '+' : '-';
     const color = isIncome ? '#10b981' : '#ef4444';
-    const desc = t.description || t.name || t.title || 'Untitled';
+    const itemTitle = t.title || t.description || t.name || 'Untitled';
     const cat = t.category || 'General';
-
-    // Assumes your database table has an `id` column. If your primary key is named differently, adjust `t.id` here.
     const recordId = t.id;
 
     return `
       <div class="txn-item">
         <div class="txn-info">
-          <strong>${desc}</strong>
+          <strong>${itemTitle}</strong>
           <small>${cat} • ${t.date}</small>
         </div>
         <div class="txn-right">
@@ -259,7 +254,6 @@ function renderCharts(typeTotals, categoryTotals) {
   if (dashChartInstance) dashChartInstance.destroy();
   if (overviewChartInstance) overviewChartInstance.destroy();
 
-  // 1. Dashboard Chart (Income vs Expense Types)
   const ctxDash = document.getElementById('dashboardTypeChart');
   if (ctxDash) {
     dashChartInstance = new Chart(ctxDash, {
@@ -283,7 +277,6 @@ function renderCharts(typeTotals, categoryTotals) {
     });
   }
 
-  // 2. Overview Chart (Spending Categories Bar Chart)
   const ctxOverview = document.getElementById('overviewCategoryChart');
   if (ctxOverview) {
     const sortedCats = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
@@ -315,7 +308,7 @@ function renderCharts(typeTotals, categoryTotals) {
   }
 }
 
-// --- CSV Export (Respects Current Filter Selection) ---
+// --- CSV Export (Using 'title') ---
 function exportFilteredCSV() {
   const filterVal = document.getElementById('export-filter').value;
   const now = new Date();
@@ -339,10 +332,10 @@ function exportFilteredCSV() {
     return;
   }
 
-  let csv = 'Type,Category,Description,Amount,Date\n';
+  let csv = 'Type,Category,Title,Amount,Date,Created At\n';
   filtered.forEach(t => {
-    const desc = (t.description || t.name || 'Untitled').replace(/"/g, '""');
-    csv += `${t.type || 'Expense'},${t.category || 'General'},"${desc}",${t.amount},${t.date}\n`;
+    const itemTitle = (t.title || t.description || 'Untitled').replace(/"/g, '""');
+    csv += `${t.type || 'Expense'},${t.category || 'General'},"${itemTitle}",${t.amount},${t.date},${t.created_at || ''}\n`;
   });
 
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -353,7 +346,6 @@ function exportFilteredCSV() {
   a.click();
 }
 
-// Listen to filter dropdown change to instantly update view list
 document.addEventListener('DOMContentLoaded', () => {
   const filterDropdown = document.getElementById('export-filter');
   if (filterDropdown) {
