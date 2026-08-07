@@ -2,8 +2,8 @@ const SUPABASE_URL = 'https://inptsochtqsarxyjdqkv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlucHRzb2NodHFzYXJ4eWpkcWt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1NzE1MzMsImV4cCI6MjEwMTE0NzUzM30.Nhvb2IrCBfqvznvD_j0lMwFbWqsRSdmrkaOfHpVXqR4';
 
 let transactions = [];
-let cashflowChartInstance = null;
-let categoryChartInstance = null;
+let dashChartInstance = null;
+let overviewChartInstance = null;
 
 // --- Helper: Format Currency ---
 function formatCurrency(amount) {
@@ -12,12 +12,12 @@ function formatCurrency(amount) {
   return isNegative ? `-$${absAmount}` : `$${absAmount}`;
 }
 
-// --- Navigation ---
+// --- Navigation Tabs ---
 function switchPage(pageId) {
   document.querySelectorAll('.page-section').forEach(section => {
     section.style.display = 'none';
   });
-  document.querySelectorAll('.nav-buttons button').forEach(btn => {
+  document.querySelectorAll('.bottom-nav .nav-item').forEach(btn => {
     btn.classList.remove('active');
   });
 
@@ -27,6 +27,7 @@ function switchPage(pageId) {
   if (page) page.style.display = 'block';
   if (navBtn) navBtn.classList.add('active');
 
+  // Set default form date when opening transactions
   if (pageId === 'transactions') {
     const today = new Date().toISOString().split('T')[0];
     const dateInput = document.getElementById('txn-date');
@@ -45,13 +46,13 @@ async function fetchTransactions() {
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
       }
     });
-    if (!response.ok) throw new Error('Failed to fetch from database');
+    if (!response.ok) throw new Error('Failed to fetch records');
     transactions = await response.json();
     renderApp();
   } catch (error) {
-    console.error('Error loading data from Supabase:', error);
+    console.error('Error fetching database:', error);
     const listEl = document.getElementById('transactions-list');
-    if (listEl) listEl.innerText = 'Error loading data. Check your connection or API keys.';
+    if (listEl) listEl.innerText = 'Failed to load records. Check credentials.';
   }
 }
 
@@ -80,6 +81,8 @@ async function addTransaction(event) {
 
     if (response.ok) {
       document.getElementById('transaction-form').reset();
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('txn-date').value = today;
       fetchTransactions();
       switchPage('dashboard');
     }
@@ -88,125 +91,185 @@ async function addTransaction(event) {
   }
 }
 
-// --- Render UI ---
+// --- Delete Transaction ---
+async function deleteTransaction(id) {
+  if (!confirm('Are you sure you want to delete this transaction?')) return;
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/transactions?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+
+    if (response.ok) {
+      fetchTransactions();
+    } else {
+      alert('Failed to delete item.');
+    }
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+  }
+}
+
+// --- Core UI & Logic Renderer ---
 function renderApp() {
   let income = 0;
   let expenses = 0;
   let monthExpenses = 0;
   let weekExpenses = 0;
-  
+  let todayExpenses = 0;
+
+  const typeTotals = { Expense: 0, Income: 0 };
   const categoryTotals = {};
 
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
-  
+
+  // Weekly threshold (Sunday start)
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
 
+  // Today string for comparison (YYYY-MM-DD)
+  const todayString = now.toISOString().split('T')[0];
+
   transactions.forEach(t => {
     const amt = Number(t.amount);
     const tDate = new Date(t.date);
+    const txnType = (t.type || 'Expense').toString().trim();
 
-    const txnType = (t.type || '').toString().toLowerCase();
-    const isIncome = txnType === 'income';
-
-    if (isIncome) {
+    if (txnType.toLowerCase() === 'income') {
       income += amt;
+      typeTotals['Income'] = (typeTotals['Income'] || 0) + amt;
     } else {
       expenses += amt;
-      
+      typeTotals['Expense'] = (typeTotals['Expense'] || 0) + amt;
+
+      // Monthly calculation
       if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear) {
         monthExpenses += amt;
       }
-      
+
+      // Weekly calculation
       if (tDate >= startOfWeek) {
         weekExpenses += amt;
       }
 
-      const catName = t.category || 'Uncategorized';
-      if (!categoryTotals[catName]) {
-        categoryTotals[catName] = 0;
+      // Daily calculation
+      if (t.date === todayString) {
+        todayExpenses += amt;
       }
-      categoryTotals[catName] += amt;
+
+      // Group by Category
+      const catName = t.category || 'Uncategorized';
+      categoryTotals[catName] = (categoryTotals[catName] || 0) + amt;
     }
   });
 
-  // 1. Text UI Updates
+  // 1. Update Dashboard Metric Cards
   const net = income - expenses;
   if (document.getElementById('net-balance')) document.getElementById('net-balance').innerText = formatCurrency(net);
   if (document.getElementById('total-income')) document.getElementById('total-income').innerText = formatCurrency(income);
   if (document.getElementById('total-expenses')) document.getElementById('total-expenses').innerText = formatCurrency(expenses);
-  if (document.getElementById('month-total')) document.getElementById('month-total').innerText = formatCurrency(monthExpenses);
-  if (document.getElementById('week-total')) document.getElementById('week-total').innerText = formatCurrency(weekExpenses);
+  
+  if (document.getElementById('dash-month-total')) document.getElementById('dash-month-total').innerText = formatCurrency(monthExpenses);
+  if (document.getElementById('dash-week-total')) document.getElementById('dash-week-total').innerText = formatCurrency(weekExpenses);
+  if (document.getElementById('dash-today-total')) document.getElementById('dash-today-total').innerText = formatCurrency(todayExpenses);
 
-  // 2. Dashboard Category List Update
-  const catEl = document.getElementById('category-breakdown');
-  if (catEl) {
-    if (Object.keys(categoryTotals).length === 0) {
-      catEl.innerHTML = '<div style="color: #6b7280; font-size: 0.9rem;">No expenses yet.</div>';
-    } else {
-      const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
-      catEl.innerHTML = sortedCategories.map(([catName, amount]) => `
-        <div class="category-item">
-          <span>${catName}</span>
-          <strong>${formatCurrency(amount)}</strong>
-        </div>
-      `).join('');
-    }
-  }
+  // 2. Update Detailed Overview Tab Data
+  if (document.getElementById('ov-month-total')) document.getElementById('ov-month-total').innerText = formatCurrency(monthExpenses);
+  if (document.getElementById('ov-week-total')) document.getElementById('ov-week-total').innerText = formatCurrency(weekExpenses);
+  
+  // Approximate Daily Average over past 30 days
+  const dailyAvg = monthExpenses / (now.getDate() || 1);
+  if (document.getElementById('ov-daily-avg')) document.getElementById('ov-daily-avg').innerText = formatCurrency(dailyAvg);
 
-  // 3. Transactions List Update
-  const listEl = document.getElementById('transactions-list');
-  if (listEl) {
-    if (transactions.length === 0) {
-      listEl.innerText = 'No transactions recorded yet.';
-    } else {
-      listEl.innerHTML = transactions.map(t => {
-        const txnType = (t.type || '').toString().toLowerCase();
-        const isIncome = txnType === 'income';
-        const sign = isIncome ? '+' : '-';
-        const color = isIncome ? '#10b981' : '#ef4444';
-        
-        const displayName = t.description || t.name || t.title || t.item || 'No Description';
-        const displayCategory = t.category || 'Uncategorized';
-        
-        return `
-          <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
-            <div>
-              <strong style="color: #111;">${displayName}</strong><br>
-              <small style="color: #6b7280;">${displayCategory} • ${t.date}</small>
-            </div>
-            <div style="font-weight: bold; color: ${color}; display: flex; align-items: center;">
-              ${sign}$${Number(t.amount).toFixed(2)}
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-  }
+  // 3. Render Transaction List on Page 3
+  renderTransactionList();
 
-  // 4. Render Charts for Overview Tab
-  renderCharts(income, expenses, categoryTotals);
+  // 4. Render Charts
+  renderCharts(typeTotals, categoryTotals);
 }
 
-// --- Chart Rendering ---
-function renderCharts(income, expenses, categoryTotals) {
-  // Destroy old charts to prevent hovering glitches
-  if (cashflowChartInstance) cashflowChartInstance.destroy();
-  if (categoryChartInstance) categoryChartInstance.destroy();
+// --- Render Transaction List with Delete Actions ---
+function renderTransactionList() {
+  const listEl = document.getElementById('transactions-list');
+  const filterVal = document.getElementById('export-filter').value;
+  if (!listEl) return;
 
-  // Cashflow Doughnut Chart
-  const ctxCashflow = document.getElementById('cashflowChart');
-  if (ctxCashflow) {
-    cashflowChartInstance = new Chart(ctxCashflow, {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  const todayString = now.toISOString().split('T')[0];
+
+  // Filter transactions based on selection dropdown
+  const filtered = transactions.filter(t => {
+    const tDate = new Date(t.date);
+    if (filterVal === 'monthly') {
+      return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+    }
+    if (filterVal === 'weekly') {
+      return tDate >= startOfWeek;
+    }
+    if (filterVal === 'daily') {
+      return t.date === todayString;
+    }
+    return true; // All-time
+  });
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div style="color: #64748b; font-size: 0.9rem; text-align:center; padding: 20px;">No transactions found.</div>';
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(t => {
+    const isIncome = (t.type || '').toLowerCase() === 'income';
+    const sign = isIncome ? '+' : '-';
+    const color = isIncome ? '#10b981' : '#ef4444';
+    const desc = t.description || t.name || t.title || 'Untitled';
+    const cat = t.category || 'General';
+
+    // Assumes your database table has an `id` column. If your primary key is named differently, adjust `t.id` here.
+    const recordId = t.id;
+
+    return `
+      <div class="txn-item">
+        <div class="txn-info">
+          <strong>${desc}</strong>
+          <small>${cat} • ${t.date}</small>
+        </div>
+        <div class="txn-right">
+          <span class="txn-amount" style="color: ${color};">${sign}$${Number(t.amount).toFixed(2)}</span>
+          <button class="btn-delete" onclick="deleteTransaction('${recordId}')" title="Delete">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// --- Chart Rendering Engine ---
+function renderCharts(typeTotals, categoryTotals) {
+  if (dashChartInstance) dashChartInstance.destroy();
+  if (overviewChartInstance) overviewChartInstance.destroy();
+
+  // 1. Dashboard Chart (Income vs Expense Types)
+  const ctxDash = document.getElementById('dashboardTypeChart');
+  if (ctxDash) {
+    dashChartInstance = new Chart(ctxDash, {
       type: 'doughnut',
       data: {
         labels: ['Income', 'Expenses'],
         datasets: [{
-          data: [income, expenses],
-          backgroundColor: ['#10b981', '#ef4444'],
+          data: [typeTotals['Income'], typeTotals['Expense']],
+          backgroundColor: ['#10b981', '#4f46e5'],
+          borderWidth: 0,
           hoverOffset: 4
         }]
       },
@@ -220,23 +283,22 @@ function renderCharts(income, expenses, categoryTotals) {
     });
   }
 
-  // Categories Bar Chart
-  const ctxCategory = document.getElementById('categoryChart');
-  if (ctxCategory) {
-    // Sort categories alphabetically for the chart, or highest to lowest
+  // 2. Overview Chart (Spending Categories Bar Chart)
+  const ctxOverview = document.getElementById('overviewCategoryChart');
+  if (ctxOverview) {
     const sortedCats = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
     const labels = sortedCats.map(c => c[0]);
     const data = sortedCats.map(c => c[1]);
 
-    categoryChartInstance = new Chart(ctxCategory, {
+    overviewChartInstance = new Chart(ctxOverview, {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [{
-          label: 'Amount Spent ($)',
+          label: 'Spent ($)',
           data: data,
           backgroundColor: '#6366f1',
-          borderRadius: 4
+          borderRadius: 6
         }]
       },
       options: {
@@ -253,25 +315,49 @@ function renderCharts(income, expenses, categoryTotals) {
   }
 }
 
-function filterTransactions() {
-  renderApp(); 
-}
+// --- CSV Export (Respects Current Filter Selection) ---
+function exportFilteredCSV() {
+  const filterVal = document.getElementById('export-filter').value;
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  const todayString = now.toISOString().split('T')[0];
 
-function exportCSV() {
-  let csv = 'Type,Category,Description,Amount,Date\n';
-  transactions.forEach(t => {
-    const displayName = t.description || t.name || t.title || t.item || 'No Description';
-    csv += `${t.type || 'Expense'},${t.category || 'Uncategorized'},"${displayName}",${t.amount},${t.date}\n`;
+  const filtered = transactions.filter(t => {
+    const tDate = new Date(t.date);
+    if (filterVal === 'monthly') return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+    if (filterVal === 'weekly') return tDate >= startOfWeek;
+    if (filterVal === 'daily') return t.date === todayString;
+    return true;
   });
+
+  if (filtered.length === 0) {
+    alert('No data to export for this filter range.');
+    return;
+  }
+
+  let csv = 'Type,Category,Description,Amount,Date\n';
+  filtered.forEach(t => {
+    const desc = (t.description || t.name || 'Untitled').replace(/"/g, '""');
+    csv += `${t.type || 'Expense'},${t.category || 'General'},"${desc}",${t.amount},${t.date}\n`;
+  });
+
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.setAttribute('href', url);
-  a.setAttribute('download', 'expenses.csv');
+  a.setAttribute('download', `expenses_${filterVal}.csv`);
   a.click();
 }
 
-// --- Initialization ---
+// Listen to filter dropdown change to instantly update view list
 document.addEventListener('DOMContentLoaded', () => {
+  const filterDropdown = document.getElementById('export-filter');
+  if (filterDropdown) {
+    filterDropdown.addEventListener('change', renderTransactionList);
+  }
   fetchTransactions();
 });
