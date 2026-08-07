@@ -1,147 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern Expense Tracker!</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Chart.js for modern charts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExpenseHub</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <div class="container">
-        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 style="font-size: 1.5rem; margin: 0;">💰 ExpenseHub</h1>
-            <!-- Top Navigation Buttons -->
-            <nav style="display: flex; gap: 8px;">
-                <button onclick="switchPage('dashboard')" id="nav-dashboard" class="nav-btn active">Dashboard</button>
-                <button onclick="switchPage('overview')" id="nav-overview" class="nav-btn">Overview</button>
-                <button onclick="switchPage('transactions')" id="nav-transactions" class="nav-btn">Transactions</button>
-            </nav>
-        </header>
-
-        <!-- PAGE 1: DASHBOARD -->
-        <div id="page-dashboard" class="page-content">
-            <div class="card" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white;">
-                <h3 style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 5px;">Net Balance</h3>
-                <p id="netBalance" style="font-size: 2.2rem; font-weight: 700; margin: 0;">$0.00</p>
-                <div style="display: flex; gap: 20px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
-                    <div>
-                        <span style="font-size: 0.8rem; opacity: 0.8;">Income</span>
-                        <p id="totalIncome" style="font-size: 1.1rem; font-weight: 600; margin: 2px 0 0 0; color: #34d399;">$0.00</p>
-                    </div>
-                    <div>
-                        <span style="font-size: 0.8rem; opacity: 0.8;">Expenses</span>
-                        <p id="totalExpense" style="font-size: 1.1rem; font-weight: 600; margin: 2px 0 0 0; color: #fca5a5;">$0.00</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>Quick Summary</h2>
-                <div class="balance-grid">
-                    <div class="balance-box">
-                        <h3>This Month</h3>
-                        <p id="monthExpense" style="color: #ef4444;">$0.00</p>
-                    </div>
-                    <div class="balance-box">
-                        <h3>This Week</h3>
-                        <p id="weekExpense" style="color: #ef4444;">$0.00</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>Spending by Category</h2>
-                <div style="position: relative; height: 220px; width: 100%;">
-                    <canvas id="categoryChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- PAGE 2: DETAILED OVERVIEW -->
-        <div id="page-overview" class="page-content" style="display: none;">
-            <div class="card">
-                <h2>Detailed Breakdown</h2>
-                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 15px;">Review your cumulative financial breakdown across different time frames.</p>
-                <div id="detailedOverviewContainer">
-                    <div class="weekly-row"><span>📅 Daily Average (This Month):</span><strong id="dailyAvg">$0.00</strong></div>
-                    <div class="weekly-row"><span>📆 Current Week Total:</span><strong id="overviewWeek">$0.00</strong></div>
-                    <div class="weekly-row"><span>🗓️ Current Month Total:</span><strong id="overviewMonth">$0.00</strong></div>
-                    <div class="weekly-row" style="border-bottom:none;"><span>📈 All-Time Total Spent:</span><strong id="overviewAllTime">$0.00</strong></div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>Category Ledger Totals</h2>
-                <div id="categorySummaryContainer">
-                    <div class="empty-state" style="font-size: 0.85rem; color: #64748b;">Loading categories...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- PAGE 3: TRANSACTIONS & ENTRY -->
-        <div id="page-transactions" class="page-content" style="display: none;">
-            <div class="card">
-                <h2>Add New Entry</h2>
-                <form id="transactionForm">
-                    <div class="form-group">
-                        <label>Type</label>
-                        <select id="type">
-                            <option value="expense">Expense</option>
-                            <option value="income">Income</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Category</label>
-                        <select id="category">
-                            <option value="Normal Eating">🥗 Normal Eating</option>
-                            <option value="Internet & Online">🌐 Internet & Online</option>
-                            <option value="Housing/Bills">🏠 Housing & Bills</option>
-                            <option value="Transport">🚗 Transport</option>
-                            <option value="Entertainment">🎬 Entertainment</option>
-                            <option value="Other">📁 Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <input type="text" id="title" placeholder="e.g., Groceries" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Amount ($)</label>
-                        <input type="number" id="amount" step="0.01" placeholder="0.00" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" id="date" required>
-                    </div>
-                    <button type="submit" id="submitBtn">Add Transaction</button>
-                </form>
-            </div>
-
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                    <h2 style="margin: 0;">History & Export</h2>
-                    <div style="display: flex; gap: 6px;">
-                        <select id="exportFilter" style="padding: 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.8rem;">
-                            <option value="all">All-Time</option>
-                            <option value="month">This Month</option>
-                            <option value="week">This Week</option>
-                        </select>
-                        <button type="button" onclick="exportToCSV()" style="background-color: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">Export CSV</button>
-                    </div>
-                </div>
-                <ul id="transactionList">
-                    <div class="empty-state">Loading data from Supabase...</div>
-                </ul>
-            </div>
-        </div>
-
+  <header>
+    <!-- App Name on top -->
+    <div class="app-title">
+      <span style="font-size: 1.5rem; margin-right: 8px;">💰</span> Expenses Tracker
     </div>
+    
+    <!-- Navigation Buttons below -->
+    <nav class="nav-buttons">
+      <button id="nav-dashboard" class="active" onclick="switchPage('dashboard')">Dashboard</button>
+      <button id="nav-overview" onclick="switchPage('overview')">Overview</button>
+      <button id="nav-transactions" onclick="switchPage('transactions')">Transactions</button>
+    </nav>
+  </header>
 
-    <script src="app.js"></script>
+  <main>
+    <!-- Dashboard Page -->
+    <section id="page-dashboard" class="page-section">
+      <div class="card balance-card">
+        <div class="balance-title">Net Balance</div>
+        <div id="net-balance" class="balance-amount">$0.00</div>
+        <div class="balance-sub">
+          <div>Income <span id="total-income" class="income-text">$0.00</span></div>
+          <div>Expenses <span id="total-expenses" class="expense-text">$0.00</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Quick Summary</h3>
+        <div class="summary-grid">
+          <div>
+            <div class="summary-label">THIS MONTH</div>
+            <div id="month-total" class="summary-value">$0.00</div>
+          </div>
+          <div>
+            <div class="summary-label">THIS WEEK</div>
+            <div id="week-total" class="summary-value">$0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Spending by Category</h3>
+        <div id="category-breakdown"></div>
+      </div>
+    </section>
+
+    <!-- Overview Page -->
+    <section id="page-overview" class="page-section" style="display: none;">
+      <div class="card">
+        <h3>Analytics & Overview</h3>
+        <p>Detailed charts and insights for your spending habits.</p>
+      </div>
+    </section>
+
+    <!-- Transactions Page -->
+    <section id="page-transactions" class="page-section" style="display: none;">
+      <div class="card">
+        <h3>Add New Entry</h3>
+        <form id="transaction-form" onsubmit="addTransaction(event)">
+          <div class="form-group">
+            <label>Type</label>
+            <select id="txn-type">
+              <option value="Expense">Expense</option>
+              <option value="Income">Income</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="txn-category">
+              <option value="Normal Eating">🥗 Normal Eating</option>
+              <option value="Groceries">🛒 Groceries</option>
+              <option value="Transport">🚗 Transport</option>
+              <option value="Utilities">⚡ Utilities</option>
+              <option value="Entertainment">🎬 Entertainment</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" id="txn-desc" placeholder="e.g., Groceries" required>
+          </div>
+          <div class="form-group">
+            <label>Amount ($)</label>
+            <input type="number" id="txn-amount" step="0.01" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="txn-date" required>
+          </div>
+          <button type="submit" class="btn-primary">Add Transaction</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-header-flex">
+          <h3>History & Export</h3>
+          <select id="filter-time" onchange="filterTransactions()">
+            <option value="all">All-Time</option>
+            <option value="month">This Month</option>
+            <option value="week">This Week</option>
+          </select>
+        </div>
+        <div id="transactions-list">Loading data from Supabase...</div>
+        <button onclick="exportCSV()" class="btn-secondary">Export CSV</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
 </body>
 </html>
